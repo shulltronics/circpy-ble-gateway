@@ -3,6 +3,14 @@ import socket
 import ssl
 import adafruit_minimqtt.adafruit_minimqtt as MQTT
 
+from adafruit_ble import BLERadio
+from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
+from adafruit_ble.services.nordic import UARTService
+
+# Bluetooth radio variables
+ble = BLERadio()
+uart_connection = None
+
 # Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
 # "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
 # source control.
@@ -15,7 +23,7 @@ except ImportError:
 
 # MQTT Topic
 # Use this topic if you'd like to connect to a standard MQTT broker
-mqtt_topic = "test"
+mqtt_topic = "clue/temp"
 
 ### Code ###
 # Define callback methods which are called when events occur
@@ -50,7 +58,7 @@ def publish(mqtt_client, userdata, topic, pid):
 
 def message(client, topic, message):
     # Method called when a client's subscribed feed has a new value.
-    print("[{2}]: New message on topic {0}: {1}".format(topic, message, time.strftime("%I:%M:%S")))
+    print("[{2}]: New message on topic {0}: {1}".format(topic, message, time.strftime("%I:%M:%S %p")))
 
 
 # Set up a MiniMQTT Client
@@ -90,7 +98,28 @@ mqtt_client.subscribe(mqtt_topic)
 #print("Disconnecting from %s" % mqtt_client.broker)
 #mqtt_client.disconnect()
 
+if not uart_connection:
+    print("Trying to connect to BLE...")
+    for adv in ble.start_scan(ProvideServicesAdvertisement):
+        if UARTService in adv.services:
+            uart_connection = ble.connect(adv)
+            print("Connected")
+            break
+    ble.stop_scan()
+
 while True:
+    # read the buffers and do the callbacks
     mqtt_client.loop()
-    time.sleep(0.5)
+    # Get the bluetooth data
+    
+    #
+    if uart_connection and uart_connection.connected:
+        uart_service = uart_connection[UARTService]
+        while uart_connection.connected:
+            data = uart_service.readline().decode("utf-8")
+            print(data)
+            timed_data = "{0}: {1}".format(time.strftime("%I:%M:%S %p"), data)
+            mqtt_client.publish(mqtt_topic, timed_data)
+
+    #time.sleep(0.5)
 

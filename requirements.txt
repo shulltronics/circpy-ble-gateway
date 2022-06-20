@@ -1,1 +1,2 @@
 adafruit_circuitpython_minimqtt
+adafruit_circuitpython_ble
