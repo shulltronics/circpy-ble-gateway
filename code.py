@@ -11,10 +11,8 @@ from adafruit_ble.services.nordic import UARTService
 ble = BLERadio()
 uart_connection = None
 
-# Add a secrets.py to your filesystem that has a dictionary called secrets with "ssid" and
-# "password" keys with your WiFi credentials. DO NOT share that file or commit it into Git or other
-# source control.
-# pylint: disable=no-name-in-module,wrong-import-order
+# Add a secrets.py to your filesystem that has a dictionary called secrets with the following keys:
+# "username", "password", "broker", and "port"
 try:
     from secrets import secrets
 except ImportError:
@@ -98,6 +96,7 @@ mqtt_client.subscribe(mqtt_topic)
 #print("Disconnecting from %s" % mqtt_client.broker)
 #mqtt_client.disconnect()
 
+# Connect to BLE device (TODO: Make this more robust)
 if not uart_connection:
     print("Trying to connect to BLE...")
     for adv in ble.start_scan(ProvideServicesAdvertisement):
@@ -110,9 +109,8 @@ if not uart_connection:
 while True:
     # read the buffers and do the callbacks
     mqtt_client.loop()
-    # Get the bluetooth data
     
-    #
+    # Get the bluetooth data
     if uart_connection and uart_connection.connected:
         uart_service = uart_connection[UARTService]
         while uart_connection.connected:
